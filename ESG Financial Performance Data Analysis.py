@@ -352,8 +352,19 @@ def voting_regressor(X, y):
         # save the best estimator in a h5 file
         joblib.dump(best_estimator, 'best_estimator.h5')
 
+        # print the best model from voting regressor
+        print('Best Model from Voting Regressor: ', best_estimator)
+
         # return the best estimator
         return best_estimator
 
 # Load the model
 model = joblib.load('best_estimator.h5')
+# saving label encoder
+joblib.dump(label_encoder, 'label_encoder.h5')
+
+# load the label encoder
+label_encoder = joblib.load('label_encoder.h5')
+
+# saving standard scalar
+joblib.dump(standard_scalar, 'standard_scalar.h5')

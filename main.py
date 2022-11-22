@@ -13,7 +13,7 @@ ESG grading metrics: overall grading by the FFF organization
     Prison Free Funds
 Detailed breakdown of the ESG gr    ading metrics
 """
-
+import mlflow
 import numpy as np
 import pandas as pd
 # Import visualization libraries
@@ -363,8 +363,8 @@ def neural_network_model(X_train, y_train, X_test, y_test):
     early_stopping = EarlyStopping(monitor='loss', patience=10, verbose=1, mode='min')
 
     callbacks_list = [checkpoint, early_stopping]
-    # fit the model
-    model.fit(X_train, y_train, epochs=150, batch_size=10, callbacks=callbacks_list, verbose=0)
+    # fit the model with history
+    history = model.fit(X_train, y_train, epochs=150, batch_size=10, callbacks=callbacks_list, verbose=0)
     # evaluate the keras model
     _, accuracy = model.evaluate(X_test, y_test)
     print('Accuracy: %.2f' % (accuracy))
@@ -384,10 +384,97 @@ def neural_network_model(X_train, y_train, X_test, y_test):
     mse = mean_squared_error(y_test, y_pred)
     print('MSE: %.3f' % mse)
 
+    # other metrics to check performance of the model
+    # calculate MAPE
+    mape = mean_absolute_percentage_error(y_test, y_pred)
+    print('MAPE: %.3f' % mape)
+
+    # calculate cosine proximity
+    cosine_proximity = cosine_proximity(y_test, y_pred)
+    print('Cosine Proximity: %.3f' % cosine_proximity)
+
+    # save model architecture to JSON
+    model_json = model.to_json()
+    with open("model.json", "w") as json_file:
+        json_file.write(model_json)
+
+    # load model architecture from JSON
+    json_file = open('model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+     # import model_from_json
+    from tensorflow.keras.models import model_from_json
+    loaded_model = model_from_json(loaded_model_json)
+
+    # load weights into new model
+    loaded_model.load_weights("weights.best.hdf5")
+    print("Loaded model from disk")
+
+
+    # serialize weights to HDF5
+    model.save_weights("model.h5")
+
+    # plot the predicted values vs actual values
+    plt.scatter(y_test, y_pred)
+    plt.xlabel('Actual values')
+    plt.ylabel('Predicted values')
+    plt.title('Actual vs Predicted values')
+    plt.show()
+
+    plt.savefig('Actual vs Predicted values.png')
+    # to mlflow
+    mlflow.log_artifact("plot.png")
+
+    # plot training history
+    plt.plot(history.history['loss'], label='train')
+    plt.plot(history.history['val_loss'], label='test')
+    plt.legend()
+    plt.show()
+
+    fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode='markers', name='Predicted vs Actual'))
+    fig.update_layout(title='Predicted vs Actual values', xaxis_title='Actual values', yaxis_title='Predicted values')
+    fig.show()
+
+    # log all the metrics to mlflow
+    mlflow.log_metrics({"RMSE": rmse, "R2": r2, "MAE": mae, "MSE": mse})
+
+    # log model name to mlflow
+    mlflow.log_param("model_name", "neural_network_model")
+
+    # log hyperparameter to mlflow
+    mlflow.log_param("epochs", 150)
+    mlflow.log_param("batch_size", 10)
+
     return model
 
 # call the model
 model = neural_network_model(X_train, y_train, X_test, y_test)
+
+#stop mlflow
+mlflow.end_run()
+
+# log a dictionary of metrics to mlflow
+# convert dict to json for logging
+metrics = {"RMSE": rmse, "R2": r2, "MAE": mae, "MSE": mse}
+metrics_json = json.dumps(metrics)
+mlflow.log_metric("metrics", metrics_json)
+
+# save top 30 features to mlflow and json
+top_30_features = pd.DataFrame(data=feature_importance, columns=['feature', 'importance'])
+top_30_features = top_30_features.sort_values(by='importance', ascending=False).head(30)
+top_30_features.to_json('top_30_features.json')
+
+# load json to pandas
+top_30_features = pd.read_json('top_30_features.json')
+
+# load model weights
+model.load_weights("weights.best.hdf5")
+
+
+
+
+
+
 
 
 
