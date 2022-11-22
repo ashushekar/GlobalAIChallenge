@@ -330,7 +330,8 @@ def voting_regressor(X, y):
                   'xgb__n_estimators': [100, 200, 300], 'xgb__max_depth': [5, 10, 15],
                   'knn__n_neighbors': [5, 10, 15]}
 
-        # create a GridSearchCV object with voting_regressor and params
+        # create a GridSearchCV object with voting_regressor and params and scoring as r2
+
         grid_search_cv = GridSearchCV(voting_regressor, params, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
 
         # fit the grid_search_cv on X and y
@@ -348,5 +349,11 @@ def voting_regressor(X, y):
         # log the best estimator in mlflow
         mlflow.sklearn.log_model(best_estimator, 'best_estimator')
 
+        # save the best estimator in a h5 file
+        joblib.dump(best_estimator, 'best_estimator.h5')
+
         # return the best estimator
         return best_estimator
+
+# Load the model
+model = joblib.load('best_estimator.h5')
