@@ -439,7 +439,6 @@ def neural_network_model(X_train, y_train, X_test, y_test):
     # save this plotly as jpeg
     fig.write_image("Predicted vs Actual values.jpeg")
 
-
     # log all the metrics to mlflow
     mlflow.log_metrics({"RMSE": rmse, "R2": r2, "MAE": mae, "MSE": mse})
 
@@ -475,13 +474,45 @@ top_30_features = pd.read_json('top_30_features.json')
 # load model weights
 model.load_weights("weights.best.hdf5")
 
+# Now let us try with XGBoost model
 
+# import xgboost
+import xgboost as xgb
 
+# define the xgboost model with grid search
+def xgboost_model(X_train, y_train, X_test, y_test):
+    # start mlflow
+    mlflow.start_run()
 
+    # define the model
+    model = xgb.XGBRegressor()
+    # define the grid search
+    grid = dict()
+    grid['n_estimators'] = [100, 150, 200, 250, 300, 350, 400]
+    grid['learning_rate'] = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3]
+    grid['max_depth'] = [3, 4, 5, 6, 7, 8, 9, 10]
+    grid['subsample'] = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    grid['colsample_bytree'] = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    grid['gamma'] = [0, 0.25, 0.5, 1.0]
+    grid['reg_lambda'] = [0, 0.25, 0.5, 1.0]
+    grid['reg_alpha'] = [0, 0.25, 0.5, 1.0]
+    # define the grid search
+    search = GridSearchCV(model, grid, scoring='neg_mean_squared_error', n_jobs=-1, cv=3)
+    # fit the grid search
+    result = search.fit(X_train, y_train)
+    # summarize the best score and configuration
+    print('Best Score: %s' % result.best_score_)
+    print('Best Config: %s' % result.best_params_)
 
+    # fit the model with history
+    history = model.fit(X_train, y_train, epochs=150, batch_size=10, callbacks=callbacks_list, verbose=0)
+    # evaluate the keras model
+    _, accuracy = model.evaluate(X_test, y_test)
+    print('Accuracy: %.2f' % (accuracy))
+    # make predictions
+    y_pred = model.predict(X_test)
+    # calculate RMSE
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print('RMSE: %.3f' % rmse)
 
-
-
-
-
-
+    # calculate R2 score
