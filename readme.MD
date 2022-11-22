@@ -1,5 +1,8 @@
 # Global AI Challenge - ESG Financial Performance
 
+Authors: [Ashwin Naidu]() and [Siddharth Srinivasan]()
+
+## Problem Statement
 
 In this project, we will be using the Global AI Challenge dataset to predict the financial performance for a given year based on ESG attributes. 
 The dataset contains almost 100000 records from various shareclasses or asset managers.
@@ -31,11 +34,8 @@ Total number of columns | Total number of rows
 118 | 101250
 
 ### 1.1. Distribution of target variable
-Add HTML image 2A
 
-
-![image](https://user-images.githubusercontent.com/4510984/137637201-1b5b1b9f-5b1a-4b0e-8b1a-1f1b1b2b1b1b.png)
-
+![image](https://user-images.githubusercontent.com/4510984/137637201-1b5b1b9f-5b1a-4b0e-8b1a-1f1b1b2b1b1b.png){:height="50%" width="50%"}
 Add image 2B
 
 ### 1.2. Identify Data Completeness
@@ -95,6 +95,15 @@ Below are the steps we will be performing for feature engineering:
 ```python
 Notebook used: III_ESG_FP_Model_Selection.ipynb
 ```
+
+#### 3A. Features Selection
+
+We have exercised model training with all the features and also with the features selected using the following methods:
+
+1. Using SelectKBest to select the top 10 features based on the k highest scores.
+2. Using SelectKBest to select the top 30 features based on the k highest scores.
+3. Using only grade features
+4. Using all features
 
 We will be using the following models to predict the financial performance for a given year based on ESG attributes:
 - Neural Network
