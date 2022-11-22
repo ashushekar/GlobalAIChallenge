@@ -431,9 +431,14 @@ def neural_network_model(X_train, y_train, X_test, y_test):
     plt.legend()
     plt.show()
 
+
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode='markers', name='Predicted vs Actual'))
     fig.update_layout(title='Predicted vs Actual values', xaxis_title='Actual values', yaxis_title='Predicted values')
     fig.show()
+
+    # save this plotly as jpeg
+    fig.write_image("Predicted vs Actual values.jpeg")
+
 
     # log all the metrics to mlflow
     mlflow.log_metrics({"RMSE": rmse, "R2": r2, "MAE": mae, "MSE": mse})

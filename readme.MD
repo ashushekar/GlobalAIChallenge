@@ -31,7 +31,11 @@ Total number of columns | Total number of rows
 118 | 101250
 
 ### 1.1. Distribution of target variable
-Add image 2A
+Add HTML image 2A
+
+
+![image](https://user-images.githubusercontent.com/4510984/137637201-1b5b1b9f-5b1a-4b0e-8b1a-1f1b1b2b1b1b.png)
+
 Add image 2B
 
 ### 1.2. Identify Data Completeness
@@ -69,7 +73,45 @@ We will remove the records having partial information. We will remove the record
 It is observed that only 4 records is missing with Financial Performance as-of date. We will forward fill the missing dates from previous dates.
 
 
+### 2. Feature Engineering
 
+```python
+Notebook used: II_ESG_FP_Feature_Engineering.ipynb
+```
+
+Below are the steps we will be performing for feature engineering:
+- Create new features using ordinal features - Grade columns - Label encoding
+- Preprocessing for numerical data 
+  - Replace null values with median
+  - Features with higher number of 0-values will be identified and then boolean features will be created for those features suffixed with '_isempty'
+  - Using Gaussian distribution, we will try to delete the outliers
+  - Using log transformation, we will try to normalize the data from continuous columns to reduce skewness
+  - Using exponential transformation, we will try to normalize the data from discrete columns to reduce skewness
+- Preprocessing for categorical data
+  - Using one-hot encoding, we will convert the categorical data to numerical data
+
+### 3. Model Building and Evaluation
+
+```python
+Notebook used: III_ESG_FP_Model_Selection.ipynb
+```
+
+We will be using the following models to predict the financial performance for a given year based on ESG attributes:
+- Neural Network
+- kNN
+- Ridge Regression
+- Voting Regressor
+
+We will save this models and plots using mlflow.
+
+### 4. Prediction
+
+```python
+Notebook used: IV_ESG_FP_Prediction.ipynb
+```
+
+We will test this notebook on 10 % unseen data and will predict the unseen financial performance for a given year based on ESG attributes. 
+  
 
 
 
