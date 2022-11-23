@@ -504,15 +504,98 @@ def xgboost_model(X_train, y_train, X_test, y_test):
     print('Best Score: %s' % result.best_score_)
     print('Best Config: %s' % result.best_params_)
 
-    # fit the model with history
-    history = model.fit(X_train, y_train, epochs=150, batch_size=10, callbacks=callbacks_list, verbose=0)
-    # evaluate the keras model
-    _, accuracy = model.evaluate(X_test, y_test)
-    print('Accuracy: %.2f' % (accuracy))
-    # make predictions
-    y_pred = model.predict(X_test)
-    # calculate RMSE
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    print('RMSE: %.3f' % rmse)
+    # now let us use the best parameters from above to train the model
+    model = xgb.XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=3,
+                             subsample=0.5, colsample_bytree=0.5, gamma=0,
+                             reg_lambda=0, reg_alpha=0)
 
-    # calculate R2 score
+    # fit the model
+    model.fit(X_train, y_train)
+
+    # predict the values
+    y_pred = model.predict(X_test)
+    # save as h5
+    model.save('xgboost_model.h5')
+    # load the model
+    model = load_model('xgboost_model.h5')
+
+# create a table of all our metrics
+    metrics = pd.DataFrame({'Model': ['XGBoost'],
+                            'RMSE': [np.sqrt(mean_squared_error(y_test, y_pred))],
+                            'R2': [r2_score(y_test, y_pred)],
+                            'MAE': [mean_absolute_error(y_test, y_pred)],
+                            'MSE': [mean_squared_error(y_test, y_pred)]})
+    print(metrics)
+
+
+# use extra tree regressor for model prediction
+# import ExtraTreeRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+
+def applyExtraTrees(X_train, y_train, X_test, y_test):
+    # start mlflow
+    mlflow.start_run()
+
+    # fit the model
+    model = ExtraTreesRegressor()
+    model.fit(X_train, y_train)
+
+    # predict the values
+    y_pred = model.predict(X_test)
+
+    # save Extra Trees model as pickle
+    pickle.dump(model, open('ExtraTreesRegressor.pkl', 'wb'))
+
+    model.save('extra_tree_regressor_model.h5')
+    # load the model
+    model = load_model('extra_tree_regressor_model.h5')
+
+    # create a table of all our metrics
+    metrics = pd.DataFrame({'Model': ['Extra Tree Regressor'],
+                            'RMSE': [np.sqrt(mean_squared_error(y_test, y_pred))],
+                            'R2': [r2_score(y_test, y_pred)],
+                            'MAE': [mean_absolute_error(y_test, y_pred)],
+                            'MSE': [mean_squared_error(y_test, y_pred)]})
+    print(metrics)
+
+    # log all the metrics to mlflow
+    mlflow.log_metrics({"RMSE": rmse, "R2": r2, "MAE": mae, "MSE": mse})
+
+    # extract feature importance
+    feature_importance = model.feature_importances_
+    # convert to dataframe
+    feature_importance = pd.DataFrame(feature_importance, index=X_train.columns,
+                                        columns=["importance"]).sort_values('importance', ascending=False)
+
+    # log model name to mlflow
+    mlflow.log_param("model_name", "extra_tree_regressor_model")
+
+    # stop mlflow
+    mlflow.end_run()
+
+    return model
+
+# let us use levensthien distance to find the similarity between two strings in pyspark
+# import levensthein distance
+from pyspark.sql.functions import udf
+
+# define the function
+def levenshtein_distance(s1, s2):
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+
+    # len(s1) >= len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1  # j+1 instead of j since previous_row and current_row are one character longer
+            deletions = current_row[j] + 1  # than s2
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+
+    return previous_row[-1]
