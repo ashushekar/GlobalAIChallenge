@@ -150,6 +150,12 @@ Notebook used: IV_ESG_FP_Prediction.ipynb
 We will test this notebook on 10 % unseen data and will predict the unseen financial performance for a given year based on ESG attributes. 
   
 
+## Conclusion
+So below 30 features are selected using SelectKBest to predict the financial performance for a given year based on ESG attributes.
+
+## Plot of the predicted values vs actual values
+
+
 
 
 

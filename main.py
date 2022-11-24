@@ -546,6 +546,9 @@ def applyExtraTrees(X_train, y_train, X_test, y_test):
     # save Extra Trees model as pickle
     pickle.dump(model, open('ExtraTreesRegressor.pkl', 'wb'))
 
+    # load the model
+    model = pickle.load(open('ExtraTreesRegressor.pkl', 'rb'))
+
     model.save('extra_tree_regressor_model.h5')
     # load the model
     model = load_model('extra_tree_regressor_model.h5')
@@ -599,3 +602,53 @@ def levenshtein_distance(s1, s2):
         previous_row = current_row
 
     return previous_row[-1]
+
+
+# visualize the results from Extra Tree Regressor using plotly
+# import plotly
+import plotly.express as px
+
+# create a function to visualize the results from Extra Tree Regressor using line plot
+def visualizeExtraTreeRegressorResults(model, X_test, y_test):
+
+    # lets plot how features are important with correct and incorrect predictions using plotly
+    # predict the values
+    y_pred = model.predict(X_test)
+
+    # get feature importance from the model and convert to dataframe
+    feature_importance = pd.DataFrame(model.feature_importances_, index=X_test.columns,
+                                        columns=["importance"]).sort_values('importance', ascending=False)
+
+    # plot the results
+    fig = px.line(feature_importance, x=feature_importance.index, y="importance", title='Feature Importance')
+    fig.show()
+
+    # plot fitted vs residuals with outliers
+    # get the residuals
+    residuals = y_test - y_pred
+    # get the outliers
+    outliers = np.abs(residuals) > 3 * np.std(residuals)
+    # calculate percentage of outliers
+    outliers_percentage = np.sum(outliers) / len(outliers) * 100
+    # plot the results with percentage of outliers
+    fig = px.scatter(x=y_pred, y=residuals, color=outliers, title='Fitted vs Residuals with Outliers')
+    fig.update_layout(
+        xaxis_title="Fitted Values",
+        yaxis_title="Residuals",
+        annotations=[
+            dict(
+                x=0.5,
+                y=0.9,
+                xref='paper',
+                yref='paper',
+                text='Percentage of Outliers: ' + str(round(outliers_percentage, 2)) + '%',
+                showarrow=False
+            )
+        ]
+    )
+    fig.show()
+
+
+
+
+

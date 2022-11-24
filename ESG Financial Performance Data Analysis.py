@@ -363,6 +363,32 @@ model = joblib.load('best_estimator.h5')
 # saving label encoder
 joblib.dump(label_encoder, 'label_encoder.h5')
 
+# apply label encoder on multiple columns and save the label encoder
+def apply_label_encoder(dataset, columns):
+    # apply label encoder on multiple columns and save the label encoder
+    for column in columns:
+        # apply label encoder on column
+        dataset[column] = label_encoder.fit_transform(dataset[column])
+
+    # return the dataset
+    return dataset
+
+# apply label encoder on multiple columns and save the label encoder
+def apply_label_encoder_test(dataset, columns):
+    # apply label encoder on multiple columns and save the label encoder
+    for column in columns:
+        # apply label encoder on column
+        dataset[column] = label_encoder.transform(dataset[column])
+
+    # return the dataset
+    return dataset
+
+# append 3 list
+# 1. list of continuous columns
+# 2. list of categorical columns
+# 3. list of target variable
+columns = continuous_columns + categorical_columns + ['target']
+
 # load the label encoder
 label_encoder = joblib.load('label_encoder.h5')
 
