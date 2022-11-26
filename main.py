@@ -616,13 +616,15 @@ def applyExtraTrees(X_train, y_train, X_test, y_test):
     feature_importance = pd.DataFrame({'feature': X_train.columns, 'importance': model.feature_importances_})
     # sort the values
     feature_importance = feature_importance.sort_values('importance', ascending=False)
-    # get the feature with highest importance
-    feature = feature_importance['feature'].iloc[0]
-    # plot the feature with highest importance against the target
-    fig = px.scatter(X_train, x=feature, y='target', trendline='ols', title='Feature vs Target')
-    fig.update_layout(title='Feature vs Target', xaxis_title='Feature',
-                        yaxis_title='Target', title_x=0.5)
-    fig.show()
+    # get the top 3 features with highest importance
+    top_3_features = feature_importance['feature'].head(3).values
+
+    # now plot the correlation of the top 3 features with the target
+    fig = px.scatter_3d(X_train, x=top_3_features[0], y=top_3_features[1], z=top_3_features[2],
+                        color=y_train, color_continuous_scale='Viridis', title='Feature Importance')
+    # set height and width
+    fig.update_layout(height=800, width=800)
+    # set font size
 
 
 
