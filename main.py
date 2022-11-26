@@ -610,18 +610,21 @@ def applyExtraTrees(X_train, y_train, X_test, y_test):
                         yaxis_title='Importance', title_x=0.5)
     fig.show()
 
-    # plot dendrogram to show feature importance on prediction
-    # import dendrogram from plotly
-    from plotly.figure_factory import create_dendrogram
-    # create a dendrogram with weight values
-    fig = create_dendrogram(feature_importance, orientation='left', labels=feature_importance['feature'].values)
-    # set height and width
-    fig.update_layout(height=800, width=800)
-    # set font size
-    fig.update_layout(font_size=10)
-    fig.update_layout(title='Feature Importance', xaxis_title='Feature',
-                        yaxis_title='Importance', title_x=0.5)
+    # lets see how feature with highest importance is correlated with the target
+
+    # create a dataframe of feature importance
+    feature_importance = pd.DataFrame({'feature': X_train.columns, 'importance': model.feature_importances_})
+    # sort the values
+    feature_importance = feature_importance.sort_values('importance', ascending=False)
+    # get the feature with highest importance
+    feature = feature_importance['feature'].iloc[0]
+    # plot the feature with highest importance against the target
+    fig = px.scatter(X_train, x=feature, y='target', trendline='ols', title='Feature vs Target')
+    fig.update_layout(title='Feature vs Target', xaxis_title='Feature',
+                        yaxis_title='Target', title_x=0.5)
     fig.show()
+
+
 
 
 
