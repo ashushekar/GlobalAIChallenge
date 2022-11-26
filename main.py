@@ -295,7 +295,8 @@ def regression_model(X_train, y_train, X_test, y_test):
 from sklearn.neighbors import KNeighborsRegressor
 
 def knn_model(X_train, y_train, X_test, y_test):
-    # deine kNN model
+    # set seed for reproducibility
+    np.random.seed(42)
     knn = KNeighborsRegressor()
     # define grid
     grid = dict()
@@ -528,7 +529,7 @@ def xgboost_model(X_train, y_train, X_test, y_test):
     print(metrics)
 
 
-# use extra tree regressor for model prediction
+# use extra tree regressor for model prediction with grid search
 # import ExtraTreeRegressor
 from sklearn.ensemble import ExtraTreesRegressor
 
@@ -536,72 +537,55 @@ def applyExtraTrees(X_train, y_train, X_test, y_test):
     # start mlflow
     mlflow.start_run()
 
+    # define the model with fix seed
+    model = ExtraTreesRegressor(random_state=42)
+    # define the grid search
+    grid = dict()
+    grid['n_estimators'] = [100, 150, 200, 250, 300, 350, 400]
+    grid['max_features'] = [3, 4, 5, 6, 7, 8, 9, 10]
+    grid['max_depth'] = [3, 4, 5, 6, 7, 8, 9, 10]
+
+    # define the grid search with r2 as scoring and 3 fold cross validation
+    search = GridSearchCV(model, grid, scoring='r2', n_jobs=-1, cv=3)
+    # fit the grid search
+    result = search.fit(X_train, y_train)
+    # summarize the best score and configuration
+    print('Best Score: %s' % result.best_score_)
+    print('Best Config: %s' % result.best_params_)
+
+    # now let us use the best parameters from above to train the model
+    model = ExtraTreesRegressor(n_estimators=100, max_features=3)
+
     # fit the model
-    model = ExtraTreesRegressor()
     model.fit(X_train, y_train)
+
+    # print model parameters
+    print(model.get_params())
 
     # predict the values
     y_pred = model.predict(X_test)
-
-    # save Extra Trees model as pickle
-    pickle.dump(model, open('ExtraTreesRegressor.pkl', 'wb'))
-
-    # load the model
-    model = pickle.load(open('ExtraTreesRegressor.pkl', 'rb'))
-
+    # save as h5
     model.save('extra_tree_regressor_model.h5')
     # load the model
     model = load_model('extra_tree_regressor_model.h5')
 
-    # create a table of all our metrics
-    metrics = pd.DataFrame({'Model': ['Extra Tree Regressor'],
-                            'RMSE': [np.sqrt(mean_squared_error(y_test, y_pred))],
-                            'R2': [r2_score(y_test, y_pred)],
-                            'MAE': [mean_absolute_error(y_test, y_pred)],
-                            'MSE': [mean_squared_error(y_test, y_pred)]})
-    print(metrics)
+    # add prediction to the test data
+    X_test['prediction'] = y_pred
 
-    # log all the metrics to mlflow
-    mlflow.log_metrics({"RMSE": rmse, "R2": r2, "MAE": mae, "MSE": mse})
+    # now let us box plot actual vs predicted in parallel against date to see how the model is performing in plotly
+    go.Figure(data=[go.Parcoords(
+        line=dict(color=X_test['prediction'], colorscale='Viridis', showscale=True,
+                    reversescale=True, cmin=0, cmax=1),
+        dimensions=list([
+            dict(range=[0, 1],
+                    constraintrange=[0, 1],
+                    label='Actual', values=X_test['actual']),
+            dict(range=[0, 1],
+                    label='Predicted', values=X_test['prediction'])
+        ])
+    )])
 
-    # extract feature importance
-    feature_importance = model.feature_importances_
-    # convert to dataframe
-    feature_importance = pd.DataFrame(feature_importance, index=X_train.columns,
-                                        columns=["importance"]).sort_values('importance', ascending=False)
 
-    # log model name to mlflow
-    mlflow.log_param("model_name", "extra_tree_regressor_model")
-
-    # stop mlflow
-    mlflow.end_run()
-
-    return model
-
-# let us use levensthien distance to find the similarity between two strings in pyspark
-# import levensthein distance
-from pyspark.sql.functions import udf
-
-# define the function
-def levenshtein_distance(s1, s2):
-    if len(s1) < len(s2):
-        return levenshtein_distance(s2, s1)
-
-    # len(s1) >= len(s2)
-    if len(s2) == 0:
-        return len(s1)
-
-    previous_row = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        current_row = [i + 1]
-        for j, c2 in enumerate(s2):
-            insertions = previous_row[j + 1] + 1  # j+1 instead of j since previous_row and current_row are one character longer
-            deletions = current_row[j] + 1  # than s2
-            substitutions = previous_row[j] + (c1 != c2)
-            current_row.append(min(insertions, deletions, substitutions))
-        previous_row = current_row
-
-    return previous_row[-1]
 
 
 # visualize the results from Extra Tree Regressor using plotly
@@ -615,40 +599,6 @@ def visualizeExtraTreeRegressorResults(model, X_test, y_test):
     # predict the values
     y_pred = model.predict(X_test)
 
-    # get feature importance from the model and convert to dataframe
-    feature_importance = pd.DataFrame(model.feature_importances_, index=X_test.columns,
-                                        columns=["importance"]).sort_values('importance', ascending=False)
-
-    # plot the results
-    fig = px.line(feature_importance, x=feature_importance.index, y="importance", title='Feature Importance')
+    # plot predictions vs actual line plot with regular interval of 100
+    fig = px.line(x=y_test[::100], y=y_pred[::100], title='Predictions vs Actual')
     fig.show()
-
-    # plot fitted vs residuals with outliers
-    # get the residuals
-    residuals = y_test - y_pred
-    # get the outliers
-    outliers = np.abs(residuals) > 3 * np.std(residuals)
-    # calculate percentage of outliers
-    outliers_percentage = np.sum(outliers) / len(outliers) * 100
-    # plot the results with percentage of outliers
-    fig = px.scatter(x=y_pred, y=residuals, color=outliers, title='Fitted vs Residuals with Outliers')
-    fig.update_layout(
-        xaxis_title="Fitted Values",
-        yaxis_title="Residuals",
-        annotations=[
-            dict(
-                x=0.5,
-                y=0.9,
-                xref='paper',
-                yref='paper',
-                text='Percentage of Outliers: ' + str(round(outliers_percentage, 2)) + '%',
-                showarrow=False
-            )
-        ]
-    )
-    fig.show()
-
-
-
-
-
