@@ -572,18 +572,65 @@ def applyExtraTrees(X_train, y_train, X_test, y_test):
     # add prediction to the test data
     X_test['prediction'] = y_pred
 
-    # now let us box plot actual vs predicted in parallel against date to see how the model is performing in plotly
-    go.Figure(data=[go.Parcoords(
-        line=dict(color=X_test['prediction'], colorscale='Viridis', showscale=True,
-                    reversescale=True, cmin=0, cmax=1),
-        dimensions=list([
-            dict(range=[0, 1],
-                    constraintrange=[0, 1],
-                    label='Actual', values=X_test['actual']),
-            dict(range=[0, 1],
-                    label='Predicted', values=X_test['prediction'])
-        ])
-    )])
+    X_test['actual'] = y_test
+
+    X_test['date'] = X_test.index
+
+    # now melt the data
+    X_test = pd.melt(X_test, id_vars=['date'], value_vars=['prediction', 'actual'])
+
+    # now box plot the data side by side with plotly
+    fig = px.box(X_test, x="variable", y="value", color="variable", points="all")
+    fig.update_layout(title='Prediction vs Actual', xaxis_title='Prediction vs Actual',
+                        yaxis_title='Price', title_x=0.5)
+    # update names of the legend and no legend title
+    fig.update_layout(legend_title_text='Prediction vs Actual')
+    fig.update_layout(legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01
+    ))
+    fig.show()
+
+    # now line plot which feature importance against time
+    # create a dataframe of feature importance
+    feature_importance = pd.DataFrame({'feature': X_train.columns, 'importance': model.feature_importances_})
+    # sort the values
+    feature_importance = feature_importance.sort_values('importance', ascending=False)
+
+    # plot bar with plotly and show all features
+    fig = px.bar(feature_importance, x='feature', y='importance', color='importance',
+                    color_continuous_scale='Viridis', title='Feature Importance')
+    # set height and width
+    fig.update_layout(height=800, width=800)
+    # set font size
+    fig.update_layout(font_size=10)
+    fig.update_layout(title='Feature Importance', xaxis_title='Feature',
+                        yaxis_title='Importance', title_x=0.5)
+    fig.show()
+
+    # plot dendrogram to show feature importance on prediction
+    # import dendrogram from plotly
+    from plotly.figure_factory import create_dendrogram
+    # create a dendrogram with weight values
+    fig = create_dendrogram(feature_importance, orientation='left', labels=feature_importance['feature'].values)
+    # set height and width
+    fig.update_layout(height=800, width=800)
+    # set font size
+    fig.update_layout(font_size=10)
+    fig.update_layout(title='Feature Importance', xaxis_title='Feature',
+                        yaxis_title='Importance', title_x=0.5)
+    fig.show()
+
+
+
+
+
+
+
+
+
 
 
 
